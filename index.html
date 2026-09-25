@@ -214,11 +214,6 @@ footer.appfoot{padding:16px 20px 28px; text-align:center;}
   };
   firebase.initializeApp(FIREBASE_CONFIG);
   const db = firebase.firestore();
-  // Alcuni blocchi pubblicità/tracker scambiano il canale di connessione realtime
-  // di Firestore per un tracciamento e lo bloccano (net::ERR_BLOCKED_BY_CLIENT).
-  // Questa impostazione fa passare Firestore a una connessione alternativa
-  // (long-polling) quando rileva che quella predefinita è bloccata.
-  db.settings({ experimentalAutoDetectLongPolling: true });
 </script>
 <!-- ====================================================================== -->
 
