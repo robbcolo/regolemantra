@@ -203,8 +203,6 @@ footer.appfoot{padding:16px 20px 28px; text-align:center;}
      ====================================================================== -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
   const FIREBASE_CONFIG = {
     apiKey: "INCOLLA_QUI_apiKey",
@@ -1304,7 +1302,31 @@ function describeArc(cx,cy,r,startAngle,endAngle){
   return `M ${cx} ${cy} L ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)} Z`;
 }
 
-/* ---- ESPORTAZIONE PDF (grafici veri via Chart.js, impaginati con jsPDF) ---- */
+/* ---- ESPORTAZIONE PDF (grafici veri via Chart.js, impaginati con jsPDF) ----
+   Le librerie si caricano solo quando servono davvero (al click su "Esporta PDF"),
+   così un eventuale blocco di rete su di esse non impedisce mai l'avvio dell'app. */
+function loadScriptOnce(url){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('load failed: ' + url));
+    document.head.appendChild(s);
+  });
+}
+async function ensurePdfLibsLoaded(){
+  if(window.jspdf && window.Chart) return true;
+  try{
+    await Promise.all([
+      window.jspdf ? Promise.resolve() : loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+      window.Chart ? Promise.resolve() : loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js'),
+    ]);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
 function hexToRgb(hex){
   const h = hex.replace('#','');
   return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)];
@@ -1347,7 +1369,6 @@ function renderPieChartImage(data){
 let exportingPdf = false;
 async function exportResultsPDF(){
   if(exportingPdf) return;
-  if(!window.jspdf || !window.Chart){ showToast('Librerie PDF non caricate: controlla la connessione e ricarica la pagina.', true); return; }
 
   const closureInfo = await computeClosure();
   const { teams, questions, allVotes } = closureInfo;
@@ -1357,7 +1378,16 @@ async function exportResultsPDF(){
 
   exportingPdf = true;
   const btn = document.getElementById('export-pdf-btn');
-  if(btn){ btn.disabled = true; btn.textContent = '⏳ Generazione in corso…'; }
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Caricamento librerie…'; }
+
+  const libsOk = await ensurePdfLibsLoaded();
+  if(!libsOk){
+    showToast('Impossibile caricare le librerie per il PDF (rete/blocco annunci?). Riprova o disattiva temporaneamente eventuali blocchi.', true);
+    exportingPdf = false;
+    if(btn){ btn.disabled = false; btn.textContent = '⬇ Esporta PDF'; }
+    return;
+  }
+  if(btn){ btn.textContent = '⏳ Generazione in corso…'; }
   showToast('Generazione PDF in corso, un momento…');
 
   try{
