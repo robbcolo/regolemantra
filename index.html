@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Tabellone Regole — Fantacalcio</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@500;700&display=swap');
+
+:root{
+  --pitch:#0B2545;
+  --pitch-dark:#071A33;
+  --pitch-light:#13315C;
+  --grass:#2D9D6F;
+  --grass-light:#8FDCB6;
+  --coral:#FF6B4A;
+  --coral-dark:#C6431F;
+  --chalk:#F7F7F2;
+  --ink:#14213D;
+  --muted:#5C6B82;
+  --line:#DDE3EC;
+  --card-bg:#FFFFFF;
+  --shadow: 0 1px 2px rgba(11,37,69,.06), 0 10px 26px rgba(11,37,69,.10);
+  --radius: 14px;
+  --font-display:'Anton', sans-serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'Space Mono', monospace;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font-body);
+  background:var(--chalk);
+  color:var(--ink);
+  min-height:100vh;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+#app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+h1,h2,h3{font-family:var(--font-display); text-transform:uppercase; letter-spacing:.02em; margin:0 0 4px; font-weight:400;}
+p{line-height:1.55;}
+.muted{color:var(--muted);font-size:14px;}
+.mono{font-family:var(--font-mono);}
+
+.topbar{
+  background:linear-gradient(160deg, var(--pitch) 0%, var(--pitch-dark) 100%);
+  color:var(--chalk);
+  padding:22px 20px 26px;
+  position:relative; overflow:hidden;
+}
+.topbar::after{
+  content:""; position:absolute; right:-60px; top:-60px; width:180px; height:180px;
+  border-radius:50%; border:2px solid rgba(247,247,242,.10);
+}
+.topbar::before{
+  content:""; position:absolute; right:10px; top:30px; width:80px; height:80px;
+  border-radius:50%; border:2px solid rgba(255,107,74,.25);
+}
+.topbar h1{font-size:24px; color:var(--chalk); margin-bottom:2px; position:relative; z-index:1;}
+.topbar .kicker{font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; color:var(--coral); text-transform:uppercase; position:relative; z-index:1;}
+.topbar .sub{color:rgba(247,247,242,.72); font-size:13px; margin-top:6px; position:relative; z-index:1;}
+.topbar-row{display:flex; align-items:center; justify-content:space-between; gap:12px; position:relative; z-index:1;}
+.chip-btn{
+  background:rgba(247,247,242,.10); border:1px solid rgba(247,247,242,.25); color:var(--chalk);
+  font-family:var(--font-mono); font-size:12px; padding:7px 12px; border-radius:100px; cursor:pointer;
+}
+.chip-btn:hover{background:rgba(247,247,242,.2);}
+
+main{padding:20px; flex:1; display:flex; flex-direction:column; gap:16px;}
+
+.card{
+  background:var(--card-bg); border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:20px; border:1px solid var(--line);
+}
+.role-grid{display:flex; flex-direction:column; gap:14px;}
+.role-card{
+  display:flex; align-items:center; gap:14px; padding:18px; border-radius:var(--radius);
+  border:1.5px solid var(--line); background:var(--card-bg); cursor:pointer; text-align:left;
+  box-shadow:var(--shadow); transition:transform .12s ease, border-color .12s ease;
+}
+.role-card:hover{transform:translateY(-2px); border-color:var(--grass);}
+.role-num{
+  font-family:var(--font-display); font-size:24px; color:var(--pitch); background:var(--grass-light);
+  width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.role-card .role-title{font-family:var(--font-display); font-size:17px; text-transform:uppercase;}
+.role-card .role-desc{font-size:13px; color:var(--muted);}
+
+label{display:block; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:6px;}
+input[type=text], input[type=password], input[type=number], input[type=date], select, textarea{
+  width:100%; padding:12px 13px; border-radius:10px; border:1.5px solid var(--line); font-family:var(--font-body);
+  font-size:15px; background:#FBFBFA; color:var(--ink);
+}
+input:focus, select:focus, textarea:focus{outline:2px solid var(--grass); outline-offset:1px; border-color:var(--grass);}
+textarea{min-height:80px; resize:vertical;}
+.field{margin-bottom:14px;}
+.pin-input{letter-spacing:.4em; font-family:var(--font-mono); text-align:center; font-size:20px;}
+
+button{font-family:var(--font-body); cursor:pointer;}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:13px 18px; border-radius:10px; border:none; font-weight:600; font-size:15px; width:100%;
+}
+.btn-primary{background:var(--pitch); color:var(--chalk);}
+.btn-primary:hover{background:var(--pitch-dark);}
+.btn-primary:disabled{background:#A9B3C4; cursor:not-allowed;}
+.btn-outline{background:transparent; border:1.5px solid var(--line); color:var(--ink);}
+.btn-outline:hover{border-color:var(--pitch);}
+.btn-danger{background:#FDECE7; color:var(--coral-dark); border:1px solid #F7C9B9;}
+.btn-sm{padding:8px 12px; font-size:13px; width:auto;}
+.btn-coral{background:var(--coral); color:#fff;}
+.btn-bio{background:var(--ink); color:#fff; border:1px solid var(--pitch-light);}
+.link-btn{background:none;border:none;color:var(--pitch);font-weight:600;text-decoration:underline;padding:0;font-size:14px;}
+
+.error-box{background:#FDECE7; border:1px solid #F7C9B9; color:var(--coral-dark); padding:10px 12px; border-radius:8px; font-size:13px; margin-bottom:12px;}
+.info-box{background:#E8F6EF; border:1px solid #BEE7D3; color:#1B6B47; padding:10px 12px; border-radius:8px; font-size:13px; margin-bottom:12px;}
+.divider-or{display:flex; align-items:center; gap:10px; margin:14px 0; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em;}
+.divider-or::before, .divider-or::after{content:""; flex:1; height:1px; background:var(--line);}
+
+.q-card{border:1.5px solid var(--line); border-radius:var(--radius); padding:16px; background:var(--card-bg); box-shadow:var(--shadow);}
+.q-index{font-family:var(--font-mono); font-size:11px; color:var(--grass); font-weight:700; letter-spacing:.08em;}
+.q-text{font-size:16px; font-weight:700; margin:4px 0 12px; font-family:var(--font-body);}
+.opt-row{display:flex; align-items:center; gap:10px; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; margin-bottom:8px; cursor:pointer;}
+.opt-row:has(input:checked){border-color:var(--grass); background:#EEFBF4;}
+.opt-row input{accent-color:var(--pitch); width:18px; height:18px; flex-shrink:0;}
+.locked-tag{display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:12px; color:var(--muted); background:#EEF1F6; padding:5px 10px; border-radius:100px;}
+
+.progress-wrap{display:flex; align-items:center; gap:10px;}
+.progress-track{flex:1; height:8px; background:#E7EBF2; border-radius:100px; overflow:hidden;}
+.progress-fill{height:100%; background:var(--grass); border-radius:100px; transition:width .3s ease;}
+.score-badge{font-family:var(--font-mono); font-size:13px; background:var(--pitch); color:var(--chalk); padding:4px 10px; border-radius:100px;}
+
+.lineup{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+.jersey{
+  aspect-ratio:1; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border:2px solid var(--line); background:#F4F6FA; gap:2px; padding:6px; text-align:center;
+}
+.jersey.done{background:var(--pitch); border-color:var(--pitch-dark); color:var(--chalk);}
+.jersey .num{font-family:var(--font-display); font-size:20px;}
+.jersey .name{font-size:10px; font-weight:600; line-height:1.2; text-transform:uppercase; word-break:break-word;}
+.jersey .stat{font-family:var(--font-mono); font-size:10px; opacity:.85;}
+
+.tabs{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px;}
+.tab-btn{flex-shrink:0; padding:9px 14px; border-radius:100px; border:1.5px solid var(--line); background:var(--card-bg); font-size:13px; font-weight:600; color:var(--muted);}
+.tab-btn.active{background:var(--pitch); color:var(--chalk); border-color:var(--pitch);}
+
+.list-item{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:14px; border:1.5px solid var(--line); border-radius:12px; margin-bottom:10px; background:var(--card-bg);}
+.list-item.inactive{opacity:.55;}
+.list-item .item-main{flex:1; min-width:0;}
+.item-title{font-weight:700; font-size:14px;}
+.item-meta{font-size:12px; color:var(--muted); margin-top:2px;}
+.item-actions{display:flex; flex-direction:column; gap:6px; flex-shrink:0;}
+.icon-btn{background:#F4F6FA; border:1px solid var(--line); border-radius:8px; width:32px; height:32px; font-size:14px; display:flex; align-items:center; justify-content:center;}
+
+.option-edit-row{display:flex; gap:8px; margin-bottom:8px; align-items:center;}
+.option-edit-row input{flex:1;}
+
+.pie-block{border:1.5px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px; background:var(--card-bg);}
+.pie-flex{display:flex; gap:16px; align-items:center; flex-wrap:wrap;}
+.legend{flex:1; min-width:140px; display:flex; flex-direction:column; gap:6px;}
+.legend-row{display:flex; align-items:center; gap:8px; font-size:13px;}
+.legend-dot{width:11px; height:11px; border-radius:3px; flex-shrink:0;}
+.legend-val{font-family:var(--font-mono); margin-left:auto; font-weight:700;}
+.waiting-box{border:1.5px dashed var(--line); border-radius:12px; padding:16px; text-align:center; color:var(--muted); font-size:13px;}
+.freetext-item{background:#F4F6FA; border-radius:8px; padding:9px 12px; margin-bottom:6px; font-size:14px; display:flex; justify-content:space-between; gap:10px;}
+
+footer.appfoot{padding:16px 20px 28px; text-align:center;}
+
+.app-toast{
+  position:fixed; left:50%; bottom:calc(22px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%);
+  background:var(--ink); color:#fff; padding:12px 18px; border-radius:10px; font-size:14px;
+  max-width:92%; z-index:9999; box-shadow:var(--shadow); display:none; text-align:center;
+}
+.app-toast.err{background:var(--coral-dark);}
+.app-toast.ok{background:#1B6B47;}
+.confirm-overlay{
+  position:fixed; inset:0; background:rgba(11,37,69,.55); display:flex; align-items:center;
+  justify-content:center; z-index:9999; padding:20px;
+}
+.confirm-box{background:#fff; border-radius:14px; padding:20px; max-width:360px; box-shadow:var(--shadow);}
+.confirm-box p{margin:0; font-size:15px; line-height:1.5;}
+
+@media print{
+  .no-print{display:none !important;}
+  body{background:white;}
+  #app{max-width:100%;}
+  .topbar{background:white !important; color:black !important; padding:10px 0;}
+  .topbar .kicker,.topbar .sub{color:#333 !important;}
+  .topbar::after,.topbar::before{display:none;}
+  main{padding:0 10px;}
+  .pie-block{page-break-after:always; border:none; box-shadow:none;}
+  .pie-block:last-child{page-break-after:auto;}
+}
+</style>
+</head>
+<body>
+<div id="app"><p style="padding:40px;text-align:center;font-family:sans-serif;color:#666;">Caricamento…</p></div>
+
+<!-- ======================================================================
+     CONFIGURAZIONE FIREBASE — incolla qui i tuoi valori (vedi ISTRUZIONI.md)
+     ====================================================================== -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCB7jkr12H2k3JLm9eYmi6GoXyQ32pD8Uc",
+    authDomain: "regole-mantra.firebaseapp.com",
+    projectId: "regole-mantra",
+    storageBucket: "regole-mantra.firebasestorage.app"",
+    messagingSenderId: "951520447243",
+    appId: "1:951520447243:web:3029841595c7746d13f00e",
+    measurementId: "G-38PY3NJZTS"
+  };
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.firestore();
+</script>
+<!-- ====================================================================== -->
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------------------------------------------------
+   STORAGE LAYER — su Firestore: partecipanti e admin vedono
+   gli stessi dati della lega tramite lo stesso database.
+--------------------------------------------------------- */
+async function storeGet(key, fallback){
+  try{
+    const doc = await db.collection('app_data').doc(key).get();
+    if(!doc.exists) return fallback;
+    const data = doc.data();
+    return data && data.value !== undefined ? JSON.parse(data.value) : fallback;
+  }catch(e){ console.error('firestore get failed', key, e); return fallback; }
+}
+async function storeSet(key, value){
+  try{
+    await db.collection('app_data').doc(key).set({ value: JSON.stringify(value) });
+    return true;
+  }catch(e){ console.error('firestore set failed', key, e); return false; }
+}
+
+const getTeams = () => storeGet('teams', []);
+const saveTeams = (t) => storeSet('teams', t);
+const getQuestions = () => storeGet('questions', []);
+const saveQuestions = (q) => storeSet('questions', q);
+const getConfig = () => storeGet('config', {
+  adminPassword: 'Rob051196', scadenza: null, votazioneChiusa: false, bannerImage: null, biometricCredId: null,
+});
+const saveConfig = (c) => storeSet('config', c);
+const getVotesForTeam = (teamId) => storeGet('votes:' + teamId, {});
+const saveVotesForTeam = (teamId, v) => storeSet('votes:' + teamId, v);
+
+function uid(prefix){
+  return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+/* ---------------------------------------------------------
+   TOAST + CONFERME PERSONALIZZATE
+   (i dialog nativi alert/confirm possono restare bloccati
+   in silenzio dentro l'iframe sandboxato dell'artifact)
+--------------------------------------------------------- */
+function showToast(msg, isError){
+  let toast = document.getElementById('app-toast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'app-toast';
+    toast.className = 'app-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.className = 'app-toast ' + (isError ? 'err' : 'ok');
+  toast.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.display = 'none'; }, 3800);
+}
+
+function customConfirm(message){
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box">
+        <p>${escapeHtml(message)}</p>
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="btn btn-outline" id="confirm-cancel" style="width:auto;">Annulla</button>
+          <button class="btn btn-danger" id="confirm-ok" style="width:auto;">Conferma</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#confirm-ok').onclick = () => { document.body.removeChild(overlay); resolve(true); };
+    overlay.querySelector('#confirm-cancel').onclick = () => { document.body.removeChild(overlay); resolve(false); };
+  });
+}
+
+/* ---------------------------------------------------------
+   WEBAUTHN — Face ID / Touch ID per l'admin (best-effort:
+   l'ambiente sandboxato dell'artifact potrebbe non permetterlo;
+   se non disponibile i pulsanti restano semplicemente nascosti
+   e la password funziona comunque sempre come prima).
+--------------------------------------------------------- */
+function bufToB64(buf){
+  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+}
+function b64ToBuf(b64){
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+async function biometricAvailable(){
+  try{
+    if(!window.PublicKeyCredential) return false;
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  }catch(e){ return false; }
+}
+async function registerBiometric(){
+  try{
+    const ok = await biometricAvailable();
+    if(!ok){ showToast('Face ID / Touch ID non disponibile su questo browser o dispositivo.', true); return; }
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rp: { name: 'Tabellone Regole' },
+        user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'admin', displayName: 'Admin' },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000,
+      }
+    });
+    const cfg = await getConfig();
+    cfg.biometricCredId = bufToB64(cred.rawId);
+    const okSave = await saveConfig(cfg);
+    if(!okSave){ showToast('Errore nel salvataggio. Riprova.', true); return; }
+    showToast('Face ID / Touch ID configurato su questo dispositivo.');
+    screenAdminDash();
+  }catch(e){
+    showToast('Configurazione annullata o non riuscita.', true);
+  }
+}
+async function removeBiometric(){
+  const cfg = await getConfig();
+  cfg.biometricCredId = null;
+  await saveConfig(cfg);
+  showToast('Face ID / Touch ID disattivato su questo dispositivo.');
+  screenAdminDash();
+}
+async function loginWithBiometric(){
+  try{
+    const cfg = await getConfig();
+    if(!cfg.biometricCredId){ showToast('Face ID / Touch ID non ancora configurato.', true); return; }
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [{ id: b64ToBuf(cfg.biometricCredId), type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000,
+      }
+    });
+    if(assertion){ state.adminAuthed = true; setView('a-dash'); }
+  }catch(e){
+    showToast('Autenticazione biometrica annullata o non riuscita. Usa la password.', true);
+  }
+}
+
+/* Una risposta è "completa" solo se, quando attiva una sotto-domanda
+   condizionata (es. "Se sì..."), anche quella è stata compilata. */
+function isAnswerComplete(answer, q){
+  if(!answer) return false;
+  if(q.followUp && answer.valore === q.followUp.trigger){
+    return q.followUp.tipo === 'scelta'
+      ? !!answer.followUpValore
+      : !!(answer.followUpValore && String(answer.followUpValore).trim());
+  }
+  return true;
+}
+
+/* Stato di chiusura della votazione: manuale (admin) oppure automatico
+   quando tutte le domande OBBLIGATORIE attive hanno 9/9 risposte complete. */
+async function computeClosure(){
+  const [cfg, teams, questions] = await Promise.all([getConfig(), getTeams(), getQuestions()]);
+  const mandatory = questions.filter(q => q.attiva && q.obbligatoria !== false);
+  const allVotes = teams.length ? await Promise.all(teams.map(t => getVotesForTeam(t.id))) : [];
+  let autoComplete = teams.length > 0 && mandatory.length > 0;
+  if(autoComplete){
+    outer:
+    for(const q of mandatory){
+      for(const v of allVotes){
+        if(!isAnswerComplete(v[q.id], q)){ autoComplete = false; break outer; }
+      }
+    }
+  }
+  const manual = !!cfg.votazioneChiusa;
+  return { closed: manual || autoComplete, manual, autoComplete, cfg, teams, questions, allVotes };
+}
+
+/* ---------------------------------------------------------
+   STATO (solo in memoria — niente localStorage/sessionStorage)
+--------------------------------------------------------- */
+let state = {
+  view: 'loading',
+  team: null,
+  adminAuthed: false,
+  adminTab: 'domande',
+  editingQid: null,
+  err: null,
+};
+
+const app = document.getElementById('app');
+
+function setView(v, extra){
+  state.view = v;
+  state.err = null;
+  if(extra) Object.assign(state, extra);
+  render();
+}
+
+async function boot(){
+  setView('home');
+}
+
+/* ---------------------------------------------------------
+   HOME
+--------------------------------------------------------- */
+function topbar(kicker, title, sub, showBack, backAction){
+  return `
+  <div class="topbar">
+    <div class="topbar-row">
+      <div>
+        <div class="kicker">${kicker}</div>
+        <h1>${title}</h1>
+        ${sub ? `<div class="sub">${sub}</div>` : ''}
+      </div>
+      ${showBack ? `<button class="chip-btn no-print" data-action="${backAction}">Esci</button>` : ''}
+    </div>
+  </div>`;
+}
+
+async function screenHome(){
+  const cfg = await getConfig();
+  const banner = cfg.bannerImage ? `<img src="${cfg.bannerImage}" style="width:100%;display:block;max-height:220px;object-fit:cover;">` : '';
+  app.innerHTML = `
+    ${banner}
+    ${topbar('Fantacalcio · Nuova Stagione', 'Tabellone Regole', 'Vota le regole della prossima stagione')}
+    <main>
+      <div class="role-grid">
+        <button class="role-card" data-action="go-p-login">
+          <div class="role-num">P</div>
+          <div>
+            <div class="role-title">Sono un partecipante</div>
+            <div class="role-desc">Seleziona la tua squadra e vota</div>
+          </div>
+        </button>
+        <button class="role-card" data-action="go-a-login">
+          <div class="role-num">A</div>
+          <div>
+            <div class="role-title">Sono l'admin</div>
+            <div class="role-desc">Gestisci domande, squadre e risultati</div>
+          </div>
+        </button>
+      </div>
+      <p class="muted" style="text-align:center;margin-top:6px;">Un solo link per tutti — ognuno entra dal proprio ruolo.</p>
+    </main>
+    <footer class="appfoot muted">⚽ Tabellone Regole</footer>
+  `;
+}
+
+/* ---------------------------------------------------------
+   PARTECIPANTE — LOGIN
+--------------------------------------------------------- */
+async function screenParticipantLogin(){
+  const [teams, cfg] = await Promise.all([getTeams(), getConfig()]);
+  const banner = cfg.bannerImage ? `<img src="${cfg.bannerImage}" style="width:100%;display:block;max-height:220px;object-fit:cover;">` : '';
+  app.innerHTML = `
+    ${banner}
+    ${topbar('Accesso Partecipante', 'Chi sei?', null, true, 'go-home')}
+    <main>
+      ${state.err ? `<div class="error-box">${state.err}</div>` : ''}
+      ${teams.length === 0 ? `
+        <div class="card"><p class="muted">L'admin non ha ancora configurato le squadre. Riprova più tardi.</p></div>
+      ` : `
+        <div class="card">
+          <div class="field">
+            <label>La tua squadra</label>
+            <select id="team-select">
+              <option value="">— seleziona —</option>
+              ${teams.map(t => `<option value="${t.id}">${escapeHtml(t.nome)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>PIN squadra</label>
+            <input type="text" inputmode="numeric" maxlength="8" class="pin-input" id="team-pin" placeholder="••••">
+          </div>
+          <button class="btn btn-primary" data-action="do-p-login">Entra e vota</button>
+        </div>
+      `}
+    </main>
+  `;
+}
+
+async function doParticipantLogin(){
+  const teamId = document.getElementById('team-select').value;
+  const pin = document.getElementById('team-pin').value.trim();
+  if(!teamId){ state.err = 'Seleziona la tua squadra.'; return screenParticipantLogin(); }
+  const teams = await getTeams();
+  const team = teams.find(t => t.id === teamId);
+  if(!team || String(team.pin) !== pin){
+    state.err = 'PIN non corretto.';
+    return screenParticipantLogin();
+  }
+  state.team = { id: team.id, nome: team.nome };
+  setView('p-vote');
+}
+
+/* ---------------------------------------------------------
+   PARTECIPANTE — VOTO (modificabile finché la votazione è aperta)
+--------------------------------------------------------- */
+async function screenParticipantVote(){
+  const [questions, myVotes, closureInfo] = await Promise.all([
+    getQuestions(), getVotesForTeam(state.team.id), computeClosure()
+  ]);
+  const active = questions.filter(q => q.attiva).sort((a,b) => a.ordine - b.ordine);
+  const mandatoryActive = active.filter(q => q.obbligatoria !== false);
+  const doneTotal = active.filter(q => isAnswerComplete(myVotes[q.id], q)).length;
+  const doneMandatory = mandatoryActive.filter(q => isAnswerComplete(myVotes[q.id], q)).length;
+  const closed = closureInfo.closed;
+  const banner = closureInfo.cfg.bannerImage ? `<img src="${closureInfo.cfg.bannerImage}" style="width:100%;display:block;max-height:220px;object-fit:cover;">` : '';
+
+  app.innerHTML = `
+    ${banner}
+    ${topbar('Squadra: ' + escapeHtml(state.team.nome), 'Vota le domande', null, true, 'go-home')}
+    <main>
+      ${closed ? `<div class="info-box">🔒 Votazione chiusa${closureInfo.manual ? " dall'admin" : ' — tutte le domande obbligatorie hanno raggiunto 9/9'}. Le risposte qui sotto sono definitive.</div>` : ''}
+      ${active.length === 0 ? `
+        <div class="card"><p class="muted">Nessuna domanda attiva al momento. Torna più tardi.</p></div>
+      ` : `
+        <div class="card">
+          <div class="progress-wrap">
+            <div class="progress-track"><div class="progress-fill" style="width:${mandatoryActive.length ? Math.round(doneMandatory/mandatoryActive.length*100) : 0}%"></div></div>
+            <span class="score-badge mono">${doneMandatory}/${mandatoryActive.length} obbligatorie</span>
+          </div>
+          <p class="muted" style="margin:8px 0 0;">${doneTotal}/${active.length} risposte totali date</p>
+          ${!closed ? '<p class="muted" style="margin:6px 0 0;">Puoi cambiare le tue risposte finché la votazione resta aperta.</p>' : ''}
+        </div>
+        ${active.map((q, i) => renderQuestionCard(q, i, myVotes[q.id], closed)).join('')}
+      `}
+    </main>
+  `;
+}
+
+function renderQuestionCard(q, i, myAnswer, closed){
+  const tagText = q.obbligatoria !== false ? 'Obbligatoria' : 'Opzionale';
+  let mainInput;
+  if(q.tipo === 'scelta'){
+    mainInput = `
+      <div class="opts">
+        ${q.opzioni.map(o => `
+          <label class="opt-row">
+            <input type="radio" name="q-${q.id}" value="${escapeHtml(o)}" ${myAnswer && myAnswer.valore === o ? 'checked' : ''} ${closed ? 'disabled' : ''}>
+            <span>${escapeHtml(o)}</span>
+          </label>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    mainInput = `
+      <div class="field" style="margin-bottom:10px;">
+        <textarea id="free-${q.id}" placeholder="Scrivi la tua risposta…" ${closed ? 'disabled' : ''}>${myAnswer ? escapeHtml(myAnswer.valore) : ''}</textarea>
+      </div>
+    `;
+  }
+
+  let fuBlock = '';
+  if(q.followUp){
+    const show = myAnswer && myAnswer.valore === q.followUp.trigger;
+    fuBlock = `
+      <div id="fu-wrap-${q.id}" data-trigger="${escapeHtml(q.followUp.trigger)}" style="${show ? '' : 'display:none;'} margin-top:10px; border-left:3px solid var(--grass); padding-left:12px;">
+        <div class="q-text" style="font-size:14px;">${escapeHtml(q.followUp.testo)}</div>
+        ${q.followUp.tipo === 'scelta' ? `
+          <div class="opts">
+            ${q.followUp.opzioni.map(o => `
+              <label class="opt-row">
+                <input type="radio" name="fuq-${q.id}" value="${escapeHtml(o)}" ${myAnswer && myAnswer.followUpValore === o ? 'checked' : ''} ${closed ? 'disabled' : ''}>
+                <span>${escapeHtml(o)}</span>
+              </label>
+            `).join('')}
+          </div>
+        ` : `
+          <textarea id="fu-free-${q.id}" placeholder="Scrivi qui…" ${closed ? 'disabled' : ''}>${myAnswer && myAnswer.followUpValore ? escapeHtml(myAnswer.followUpValore) : ''}</textarea>
+        `}
+      </div>
+    `;
+  }
+
+  const savedNote = myAnswer
+    ? `<span class="locked-tag">${closed ? '🔒 Risposta finale' : '✓ Salvata — modificabile'}</span>`
+    : '';
+
+  return `
+    <div class="q-card">
+      <div class="q-index">Domanda ${i+1} · ${tagText}</div>
+      <div class="q-text">${escapeHtml(q.testo)}</div>
+      ${mainInput}
+      ${fuBlock}
+      <div style="margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        ${!closed ? `<button class="btn btn-primary" style="width:auto;" data-action="submit-vote" data-qid="${q.id}" data-type="${q.tipo}">${myAnswer ? 'Aggiorna risposta' : 'Invia risposta'}</button>` : ''}
+        ${savedNote}
+      </div>
+    </div>
+  `;
+}
+
+let submitting = false;
+async function submitVote(qid, type){
+  if(submitting) return;
+
+  const closureInfo = await computeClosure();
+  if(closureInfo.closed){
+    showToast('La votazione è chiusa: non è più possibile modificare le risposte.', true);
+    return screenParticipantVote();
+  }
+  const q = closureInfo.questions.find(x => x.id === qid);
+  if(!q) return;
+
+  let value, followUpValore;
+  if(type === 'scelta'){
+    const sel = document.querySelector(`input[name="q-${qid}"]:checked`);
+    if(!sel){ showToast('Seleziona un\'opzione prima di inviare.', true); return; }
+    value = sel.value;
+  } else {
+    const txt = document.getElementById('free-' + qid).value.trim();
+    if(!txt){ showToast('Scrivi una risposta prima di inviare.', true); return; }
+    value = txt;
+  }
+
+  if(q.followUp && value === q.followUp.trigger){
+    if(q.followUp.tipo === 'scelta'){
+      const fsel = document.querySelector(`input[name="fuq-${qid}"]:checked`);
+      if(!fsel){ showToast('Completa anche "' + q.followUp.testo + '" prima di inviare.', true); return; }
+      followUpValore = fsel.value;
+    } else {
+      const ftxt = document.getElementById('fu-free-' + qid).value.trim();
+      if(!ftxt){ showToast('Completa anche "' + q.followUp.testo + '" prima di inviare.', true); return; }
+      followUpValore = ftxt;
+    }
+  }
+
+  submitting = true;
+  const votes = await getVotesForTeam(state.team.id);
+  votes[qid] = { valore: value, followUpValore: followUpValore, timestamp: Date.now() };
+  const ok = await saveVotesForTeam(state.team.id, votes);
+  submitting = false;
+  if(!ok){ showToast('Errore di salvataggio, riprova.', true); return; }
+  showToast('Risposta salvata.');
+  screenParticipantVote();
+}
+
+/* ---------------------------------------------------------
+   ADMIN — LOGIN (password + Face ID / Touch ID opzionale)
+--------------------------------------------------------- */
+async function screenAdminLogin(){
+  const cfg = await getConfig();
+  const bioReady = cfg.biometricCredId && await biometricAvailable();
+  app.innerHTML = `
+    ${topbar('Accesso Admin', 'Password admin', null, true, 'go-home')}
+    <main>
+      ${state.err ? `<div class="error-box">${state.err}</div>` : ''}
+      ${bioReady ? `
+        <div class="card">
+          <button class="btn btn-bio" data-action="login-biometric">🔐 Entra con Face ID / Touch ID</button>
+        </div>
+        <div class="divider-or">oppure</div>
+      ` : ''}
+      <div class="card">
+        <div class="field"><label>Password</label><input type="password" id="admin-pw"></div>
+        <button class="btn btn-primary" data-action="do-a-login">Entra</button>
+      </div>
+    </main>
+  `;
+}
+
+async function doAdminLogin(){
+  const pw = document.getElementById('admin-pw').value;
+  const cfg = await getConfig();
+  if(pw !== cfg.adminPassword){ state.err = 'Password errata.'; return screenAdminLogin(); }
+  state.adminAuthed = true;
+  setView('a-dash');
+}
+
+/* ---------------------------------------------------------
+   ADMIN — DASHBOARD SHELL
+--------------------------------------------------------- */
+async function screenAdminDash(){
+  const tabs = [
+    ['domande','Domande'],
+    ['squadre','Squadre'],
+    ['stato','Stato Voto'],
+    ['risultati','Risultati'],
+    ['impostazioni','Impostazioni'],
+  ];
+  app.innerHTML = `
+    ${topbar('Pannello Admin', 'Gestione Lega', null, true, 'go-home')}
+    <main>
+      <div class="no-print" style="display:flex; gap:8px;">
+        <button class="btn btn-outline btn-sm" data-action="export-backup">⬇ Esporta backup</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+          ⬆ Importa backup
+          <input type="file" accept="application/json" id="import-file-input" style="display:none;">
+        </label>
+      </div>
+      <div class="tabs no-print">
+        ${tabs.map(([k,l]) => `<button class="tab-btn ${state.adminTab===k?'active':''}" data-action="set-tab" data-tab="${k}">${l}</button>`).join('')}
+      </div>
+      <div id="tab-content"><p class="muted">Caricamento…</p></div>
+    </main>
+  `;
+  const el = document.getElementById('tab-content');
+  if(state.adminTab === 'domande') el.innerHTML = await tabDomande();
+  else if(state.adminTab === 'squadre') el.innerHTML = await tabSquadre();
+  else if(state.adminTab === 'stato') el.innerHTML = await tabStato();
+  else if(state.adminTab === 'risultati') el.innerHTML = await tabRisultati();
+  else if(state.adminTab === 'impostazioni') el.innerHTML = await tabImpostazioni();
+}
+
+/* ---- BACKUP: esporta/importa squadre + domande + banner (mai i voti) ---- */
+async function exportBackup(){
+  const [teams, questions, cfg] = await Promise.all([getTeams(), getQuestions(), getConfig()]);
+  const payload = { exportedAt: new Date().toISOString(), teams, questions, scadenza: cfg.scadenza || null, bannerImage: cfg.bannerImage || null };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tabellone-regole-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function importBackup(file){
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(!Array.isArray(data.teams) || !Array.isArray(data.questions)){
+      showToast('File di backup non valido.', true);
+      return;
+    }
+    if(!(await customConfirm('Questo sostituirà le squadre e le domande attualmente salvate con quelle del backup. I voti già espressi non vengono toccati. Continuare?'))) return;
+    await saveTeams(data.teams);
+    await saveQuestions(data.questions);
+    const cfg = await getConfig();
+    if(data.scadenza !== undefined) cfg.scadenza = data.scadenza;
+    if(data.bannerImage !== undefined) cfg.bannerImage = data.bannerImage;
+    await saveConfig(cfg);
+    showToast('Backup importato con successo.');
+    screenAdminDash();
+  }catch(e){
+    showToast('Errore nella lettura del file di backup.', true);
+  }
+}
+
+/* ---- TAB: DOMANDE ---- */
+async function tabDomande(){
+  const questions = (await getQuestions()).sort((a,b) => a.ordine - b.ordine);
+  const editing = state.editingQid ? questions.find(q => q.id === state.editingQid) : null;
+  return `
+    ${questions.length === 0 ? `<div class="card"><p class="muted">Nessuna domanda ancora. Aggiungine una qui sotto.</p></div>` : ''}
+    ${questions.map((q,i) => listItemHtmlForQuestion(q,i)).join('')}
+    <div class="card" id="question-form-card">
+      <h3 style="font-size:15px;">${editing ? 'Modifica domanda' : 'Nuova domanda'}</h3>
+      ${questionFormHtml(editing)}
+    </div>
+  `;
+}
+
+function listItemHtmlForQuestion(q, i){
+  const mandatoryTag = q.obbligatoria !== false ? 'obbligatoria' : 'opzionale';
+  const fuTag = q.followUp ? ` · sotto-domanda se "${escapeHtml(q.followUp.trigger)}"` : '';
+  return `
+    <div class="list-item ${q.attiva ? '' : 'inactive'}">
+      <div class="item-main">
+        <div class="item-title">${i+1}. ${escapeHtml(q.testo)}</div>
+        <div class="item-meta">${q.tipo === 'scelta' ? 'Scelta multipla: ' + q.opzioni.map(escapeHtml).join(' · ') : 'Risposta libera'} — ${q.attiva ? 'attiva' : 'disattivata'} — ${mandatoryTag}${fuTag}</div>
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" title="Modifica" data-action="edit-q" data-qid="${q.id}">✎</button>
+        <button class="icon-btn" title="Su" data-action="move-q" data-qid="${q.id}" data-dir="-1">↑</button>
+        <button class="icon-btn" title="Giù" data-action="move-q" data-qid="${q.id}" data-dir="1">↓</button>
+        <button class="icon-btn" title="${q.attiva ? 'Disattiva' : 'Attiva'}" data-action="toggle-q" data-qid="${q.id}">${q.attiva ? '⏸' : '▶'}</button>
+        <button class="icon-btn" title="Elimina" data-action="delete-q" data-qid="${q.id}">✕</button>
+      </div>
+    </div>
+  `;
+}
+
+function optionRowsHtml(opzioni){
+  return (opzioni && opzioni.length ? opzioni : ['','']).map(o =>
+    `<div class="option-edit-row"><input type="text" class="opt-input-generic" value="${escapeHtml(o)}" placeholder="Opzione"></div>`
+  ).join('');
+}
+
+function questionFormHtml(q){
+  const type = q ? q.tipo : 'scelta';
+  const mandatory = q ? q.obbligatoria !== false : true;
+  const hasFollowUp = !!(q && q.followUp);
+  return `
+    <div class="field">
+      <label>Testo della domanda</label>
+      <input type="text" id="new-q-text" placeholder="Es. Quanti fantamilioni all'inizio?" value="${q ? escapeHtml(q.testo) : ''}">
+    </div>
+    <div class="field">
+      <label>Tipo</label>
+      <select id="new-q-type" data-action="q-type-change">
+        <option value="scelta" ${type === 'scelta' ? 'selected' : ''}>Scelta multipla</option>
+        <option value="testo" ${type === 'testo' ? 'selected' : ''}>Risposta libera</option>
+      </select>
+    </div>
+    <div class="field" style="display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="new-q-mandatory" ${mandatory ? 'checked' : ''} style="width:auto;">
+      <label style="margin:0;">Domanda obbligatoria</label>
+    </div>
+    <div id="new-q-options" style="${type === 'scelta' ? '' : 'display:none;'}">
+      <label>Opzioni</label>
+      ${optionRowsHtml(q ? q.opzioni : null)}
+      <button type="button" class="link-btn" data-action="add-opt-field" data-target="new-q-options">+ Aggiungi opzione</button>
+    </div>
+    <div class="field" id="followup-toggle-wrap" style="display:${type === 'scelta' ? 'flex' : 'none'}; align-items:center; gap:8px;">
+      <input type="checkbox" id="new-q-followup-toggle" ${hasFollowUp ? 'checked' : ''} style="width:auto;">
+      <label style="margin:0;">Aggiungi una sotto-domanda condizionata (es. "Se sì…")</label>
+    </div>
+    <div id="fu-block" style="display:${hasFollowUp ? 'block' : 'none'}; border-left:3px solid var(--grass); padding-left:12px; margin-bottom:14px;">
+      <div class="field">
+        <label>Attiva quando la risposta è esattamente</label>
+        <input type="text" id="fu-trigger" placeholder="Es. Sì" value="${hasFollowUp ? escapeHtml(q.followUp.trigger) : 'Sì'}">
+      </div>
+      <div class="field">
+        <label>Testo sotto-domanda</label>
+        <input type="text" id="fu-text" placeholder="Es. Se sì, quale variante?" value="${hasFollowUp ? escapeHtml(q.followUp.testo) : ''}">
+      </div>
+      <div class="field">
+        <label>Tipo sotto-domanda</label>
+        <select id="fu-type" data-action="fu-type-change">
+          <option value="scelta" ${(!hasFollowUp || q.followUp.tipo === 'scelta') ? 'selected' : ''}>Scelta multipla</option>
+          <option value="testo" ${(hasFollowUp && q.followUp.tipo === 'testo') ? 'selected' : ''}>Risposta libera</option>
+        </select>
+      </div>
+      <div id="fu-options" style="${(hasFollowUp && q.followUp.tipo === 'testo') ? 'display:none;' : ''}">
+        <label>Opzioni sotto-domanda</label>
+        ${optionRowsHtml(hasFollowUp ? q.followUp.opzioni : null)}
+        <button type="button" class="link-btn" data-action="add-opt-field" data-target="fu-options">+ Aggiungi opzione</button>
+      </div>
+    </div>
+    <div style="margin-top:14px; display:flex; gap:10px;">
+      <button class="btn btn-primary" style="width:auto;" data-action="${q ? 'save-question' : 'add-question'}" ${q ? `data-qid="${q.id}"` : ''}>${q ? 'Salva modifiche' : 'Aggiungi domanda'}</button>
+      ${q ? '<button class="btn btn-outline" style="width:auto;" data-action="cancel-edit-q">Annulla</button>' : ''}
+    </div>
+  `;
+}
+
+function optionInputsIn(containerId){
+  return Array.from(document.querySelectorAll('#' + containerId + ' .opt-input-generic'));
+}
+
+function addOptionFieldIn(containerId){
+  const wrap = document.getElementById(containerId);
+  const btn = wrap.querySelector('[data-action="add-opt-field"]');
+  const row = document.createElement('div');
+  row.className = 'option-edit-row';
+  row.innerHTML = `<input type="text" class="opt-input-generic" placeholder="Altra opzione">`;
+  wrap.insertBefore(row, btn);
+}
+
+function onQTypeChange(){
+  const type = document.getElementById('new-q-type').value;
+  document.getElementById('new-q-options').style.display = type === 'scelta' ? 'block' : 'none';
+  const fw = document.getElementById('followup-toggle-wrap');
+  if(fw) fw.style.display = type === 'scelta' ? 'flex' : 'none';
+  if(type !== 'scelta'){
+    const fuToggle = document.getElementById('new-q-followup-toggle');
+    if(fuToggle) fuToggle.checked = false;
+    const fb = document.getElementById('fu-block');
+    if(fb) fb.style.display = 'none';
+  }
+}
+
+function onFollowupToggle(){
+  const on = document.getElementById('new-q-followup-toggle').checked;
+  document.getElementById('fu-block').style.display = on ? 'block' : 'none';
+}
+
+function onFuTypeChange(){
+  const type = document.getElementById('fu-type').value;
+  document.getElementById('fu-options').style.display = type === 'scelta' ? 'block' : 'none';
+}
+
+function readQuestionForm(){
+  const text = document.getElementById('new-q-text').value.trim();
+  const type = document.getElementById('new-q-type').value;
+  const mandatory = document.getElementById('new-q-mandatory').checked;
+  if(!text){ showToast('Scrivi il testo della domanda.', true); return null; }
+  let opzioni = [];
+  if(type === 'scelta'){
+    opzioni = optionInputsIn('new-q-options').map(i => i.value.trim()).filter(Boolean);
+    if(opzioni.length < 2){ showToast('Servono almeno 2 opzioni.', true); return null; }
+  }
+  let followUp = null;
+  const fuToggle = document.getElementById('new-q-followup-toggle');
+  if(type === 'scelta' && fuToggle && fuToggle.checked){
+    const trigger = document.getElementById('fu-trigger').value.trim();
+    const fuText = document.getElementById('fu-text').value.trim();
+    const fuType = document.getElementById('fu-type').value;
+    if(!trigger || !opzioni.includes(trigger)){ showToast('Il valore che attiva la sotto-domanda deve corrispondere esattamente a una delle opzioni sopra (es. "Sì").', true); return null; }
+    if(!fuText){ showToast('Scrivi il testo della sotto-domanda condizionata.', true); return null; }
+    let fuOpzioni = [];
+    if(fuType === 'scelta'){
+      fuOpzioni = optionInputsIn('fu-options').map(i => i.value.trim()).filter(Boolean);
+      if(fuOpzioni.length < 2){ showToast('Servono almeno 2 opzioni per la sotto-domanda.', true); return null; }
+    }
+    followUp = { trigger, testo: fuText, tipo: fuType, opzioni: fuOpzioni };
+  }
+  return { testo: text, tipo: type, opzioni, obbligatoria: mandatory, followUp };
+}
+
+async function addQuestion(){
+  const data = readQuestionForm();
+  if(!data) return;
+  const questions = await getQuestions();
+  const maxOrd = questions.reduce((m,q) => Math.max(m, q.ordine), 0);
+  questions.push({ id: uid('q'), ordine: maxOrd + 1, attiva: true, ...data });
+  await saveQuestions(questions);
+  showToast('Domanda aggiunta.');
+  screenAdminDash();
+}
+
+function editQuestion(qid){
+  state.editingQid = qid;
+  screenAdminDash().then(() => {
+    const card = document.getElementById('question-form-card');
+    if(card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function cancelEditQuestion(){
+  state.editingQid = null;
+  screenAdminDash();
+}
+
+async function saveQuestionEdit(qid){
+  const data = readQuestionForm();
+  if(!data) return;
+  const questions = await getQuestions();
+  const q = questions.find(x => x.id === qid);
+  if(q) Object.assign(q, data);
+  await saveQuestions(questions);
+  state.editingQid = null;
+  showToast('Modifiche salvate.');
+  screenAdminDash();
+}
+
+async function toggleQuestion(qid){
+  const questions = await getQuestions();
+  const q = questions.find(x => x.id === qid);
+  if(q) q.attiva = !q.attiva;
+  await saveQuestions(questions);
+  screenAdminDash();
+}
+
+async function deleteQuestion(qid){
+  if(!(await customConfirm('Eliminare questa domanda? Eventuali voti già espressi resteranno salvati ma non più visibili in lista.'))) return;
+  let questions = await getQuestions();
+  questions = questions.filter(x => x.id !== qid);
+  await saveQuestions(questions);
+  showToast('Domanda eliminata.');
+  screenAdminDash();
+}
+
+async function moveQuestion(qid, dir){
+  const questions = (await getQuestions()).sort((a,b) => a.ordine - b.ordine);
+  const idx = questions.findIndex(q => q.id === qid);
+  const swapIdx = idx + Number(dir);
+  if(swapIdx < 0 || swapIdx >= questions.length) return;
+  const tmp = questions[idx].ordine;
+  questions[idx].ordine = questions[swapIdx].ordine;
+  questions[swapIdx].ordine = tmp;
+  await saveQuestions(questions);
+  screenAdminDash();
+}
+
+/* ---- TAB: SQUADRE ---- */
+async function tabSquadre(){
+  const teams = (await getTeams());
+  return `
+    ${teams.length === 0 ? `<div class="card"><p class="muted">Nessuna squadra ancora. Aggiungine una per ciascun partecipante.</p></div>` : ''}
+    ${teams.map(t => `
+      <div class="list-item">
+        <div class="item-main">
+          <div class="item-title">${escapeHtml(t.nome)}</div>
+          <div class="item-meta mono">PIN: ${escapeHtml(String(t.pin))}</div>
+        </div>
+        <div class="item-actions">
+          <button class="icon-btn" title="Elimina" data-action="delete-team" data-tid="${t.id}">✕</button>
+        </div>
+      </div>
+    `).join('')}
+    <div class="card">
+      <h3 style="font-size:15px;">Nuova squadra</h3>
+      <div class="field"><label>Nome squadra</label><input type="text" id="new-team-name" placeholder="Es. Rocco FC"></div>
+      <div class="field"><label>PIN (dallo a chi vota)</label><input type="text" inputmode="numeric" id="new-team-pin" placeholder="Es. 4821"></div>
+      <button class="btn btn-primary" data-action="add-team">Aggiungi squadra</button>
+    </div>
+    <p class="muted">Squadre configurate: <strong>${teams.length}</strong></p>
+  `;
+}
+
+async function addTeam(){
+  const name = document.getElementById('new-team-name').value.trim();
+  const pin = document.getElementById('new-team-pin').value.trim();
+  if(!name || !pin){ showToast('Inserisci nome squadra e PIN.', true); return; }
+  const teams = await getTeams();
+  teams.push({ id: uid('t'), nome: name, pin });
+  await saveTeams(teams);
+  showToast('Squadra aggiunta.');
+  screenAdminDash();
+}
+
+async function deleteTeam(tid){
+  if(!(await customConfirm('Eliminare questa squadra? I voti già espressi restano salvati ma la squadra non potrà più accedere.'))) return;
+  let teams = await getTeams();
+  teams = teams.filter(t => t.id !== tid);
+  await saveTeams(teams);
+  showToast('Squadra eliminata.');
+  screenAdminDash();
+}
+
+/* ---- TAB: STATO VOTO ---- */
+async function tabStato(){
+  const closureInfo = await computeClosure();
+  const { teams, questions, allVotes, cfg } = closureInfo;
+  const active = questions.filter(q => q.attiva);
+  const mandatory = active.filter(q => q.obbligatoria !== false);
+
+  let completeCount = 0;
+  const jerseys = teams.map((t, i) => {
+    const v = allVotes[i];
+    const doneMandatory = mandatory.filter(q => isAnswerComplete(v[q.id], q)).length;
+    const doneTotal = active.filter(q => isAnswerComplete(v[q.id], q)).length;
+    const isComplete = mandatory.length > 0 && doneMandatory === mandatory.length;
+    if(isComplete) completeCount++;
+    return `
+      <div class="jersey ${isComplete ? 'done' : ''}">
+        <div class="num">${isComplete ? '✓' : (i+1)}</div>
+        <div class="name">${escapeHtml(t.nome)}</div>
+        <div class="stat">${doneTotal}/${active.length}</div>
+      </div>
+    `;
+  }).join('');
+
+  const missing = teams.filter((t,i) => {
+    const v = allVotes[i];
+    const doneMandatory = mandatory.filter(q => isAnswerComplete(v[q.id], q)).length;
+    return !(mandatory.length > 0 && doneMandatory === mandatory.length);
+  });
+
+  const statusHtml = closureInfo.closed
+    ? `<div class="info-box">🔒 Votazione chiusa ${closureInfo.manual ? '(chiusa manualmente)' : '(tutte le domande obbligatorie hanno raggiunto 9/9)'}</div>
+       ${closureInfo.manual ? `<button class="btn btn-outline btn-sm no-print" data-action="reopen-voting">Riapri votazione</button>` : ''}`
+    : `<div class="card" style="padding:14px;">
+        <p class="muted" style="margin:0 0 10px;">Votazione aperta — i partecipanti possono ancora rispondere o cambiare le risposte.</p>
+        <button class="btn btn-danger btn-sm" data-action="close-voting">Chiudi votazione ora</button>
+       </div>`;
+
+  return `
+    ${statusHtml}
+    <div class="card">
+      <h3 style="font-size:15px;">Chi ha risposto alle domande obbligatorie</h3>
+      <p class="muted" style="margin-top:-4px;">${completeCount}/${teams.length} squadre complete · nessun contenuto dei voti è mostrato qui</p>
+      <div class="lineup" style="margin-top:12px;">${jerseys || '<p class="muted">Aggiungi prima le squadre.</p>'}</div>
+    </div>
+    ${missing.length > 0 && teams.length > 0 ? `
+      <div class="card">
+        <h3 style="font-size:15px;">Da sollecitare</h3>
+        <p class="muted" style="margin-top:-4px;">${missing.map(t => escapeHtml(t.nome)).join(', ')}</p>
+      </div>
+    ` : ''}
+    <div class="card">
+      <h3 style="font-size:15px;">Scadenza (opzionale)</h3>
+      ${cfg.scadenza ? `<p class="muted">Scadenza votazione: <strong>${formatDate(cfg.scadenza)}</strong></p>` : ''}
+      <div class="field"><label>Data di scadenza</label><input type="date" id="scadenza-input" value="${cfg.scadenza || ''}"></div>
+      <button class="btn btn-outline" data-action="save-scadenza">Salva scadenza</button>
+    </div>
+  `;
+}
+
+async function closeVoting(){
+  if(!(await customConfirm('Chiudere la votazione ora? Nessuno potrà più rispondere o modificare le risposte, e i risultati diventeranno visibili.'))) return;
+  const cfg = await getConfig();
+  cfg.votazioneChiusa = true;
+  await saveConfig(cfg);
+  screenAdminDash();
+}
+
+async function reopenVoting(){
+  if(!(await customConfirm('Riaprire la votazione? I partecipanti potranno di nuovo rispondere o modificare le risposte, e i risultati torneranno nascosti (a meno che le domande obbligatorie non siano già tutte a 9/9).'))) return;
+  const cfg = await getConfig();
+  cfg.votazioneChiusa = false;
+  await saveConfig(cfg);
+  screenAdminDash();
+}
+
+async function saveScadenza(){
+  const val = document.getElementById('scadenza-input').value;
+  const cfg = await getConfig();
+  cfg.scadenza = val || null;
+  await saveConfig(cfg);
+  showToast('Scadenza salvata.');
+  screenAdminDash();
+}
+
+function formatDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('it-IT', { day:'2-digit', month:'long', year:'numeric' });
+}
+
+/* ---- TAB: RISULTATI ---- */
+const PIE_COLORS = ['#2D9D6F','#FF6B4A','#4C6FFF','#F4A261','#9D4EDD','#E63965','#2A9D8F','#FFB703'];
+
+async function tabRisultati(){
+  const closureInfo = await computeClosure();
+  const { teams, questions, allVotes } = closureInfo;
+  const active = questions.filter(q => q.attiva).sort((a,b) => a.ordine - b.ordine);
+  const totalTeams = teams.length;
+
+  if(totalTeams === 0 || active.length === 0){
+    return `<div class="card"><p class="muted">Configura squadre e domande per iniziare a raccogliere risultati.</p></div>`;
+  }
+
+  if(!closureInfo.closed){
+    return `<div class="waiting-box">🔒 I risultati si sbloccano quando la votazione viene chiusa — manualmente dall'admin (tab "Stato Voto"), oppure automaticamente quando tutte le domande obbligatorie raggiungono 9/9.</div>`;
+  }
+
+  const blocks = active.map((q, qi) => {
+    const answers = allVotes.map(v => v[q.id]).filter(Boolean);
+    const respondersCount = answers.length;
+    let mainBlock;
+
+    if(q.tipo === 'scelta'){
+      const counts = {};
+      q.opzioni.forEach(o => counts[o] = 0);
+      answers.forEach(a => { counts[a.valore] = (counts[a.valore]||0) + 1; });
+      const svg = buildPieSVG(q.opzioni.map((o,i) => ({ label:o, value:counts[o]||0, color:PIE_COLORS[i % PIE_COLORS.length] })));
+      const legend = q.opzioni.map((o,i) => `
+        <div class="legend-row">
+          <span class="legend-dot" style="background:${PIE_COLORS[i % PIE_COLORS.length]}"></span>
+          <span>${escapeHtml(o)}</span>
+          <span class="legend-val mono">${counts[o]||0}${respondersCount ? ` · ${Math.round((counts[o]||0)/respondersCount*100)}%` : ''}</span>
+        </div>
+      `).join('');
+      mainBlock = `<div class="pie-flex">${svg}<div class="legend">${legend}</div></div>`;
+    } else {
+      const groups = {};
+      answers.forEach(a => { const key = a.valore.trim(); groups[key] = (groups[key]||0) + 1; });
+      const rows = Object.entries(groups).sort((a,b) => b[1]-a[1]).map(([txt,c]) => `
+        <div class="freetext-item"><span>${escapeHtml(txt)}</span><span class="mono">×${c}</span></div>
+      `).join('');
+      mainBlock = rows || `<p class="muted">Nessuna risposta.</p>`;
+    }
+
+    let fuBlockHtml = '';
+    if(q.followUp){
+      const triggered = answers.filter(a => a.valore === q.followUp.trigger);
+      if(triggered.length > 0){
+        if(q.followUp.tipo === 'scelta'){
+          const fcounts = {};
+          q.followUp.opzioni.forEach(o => fcounts[o] = 0);
+          triggered.forEach(a => { if(a.followUpValore) fcounts[a.followUpValore] = (fcounts[a.followUpValore]||0) + 1; });
+          const fsvg = buildPieSVG(q.followUp.opzioni.map((o,i) => ({ label:o, value:fcounts[o]||0, color:PIE_COLORS[i % PIE_COLORS.length] })));
+          const flegend = q.followUp.opzioni.map((o,i) => `
+            <div class="legend-row"><span class="legend-dot" style="background:${PIE_COLORS[i % PIE_COLORS.length]}"></span><span>${escapeHtml(o)}</span><span class="legend-val mono">${fcounts[o]||0}</span></div>
+          `).join('');
+          fuBlockHtml = `<div style="margin-top:14px; border-top:1px dashed var(--line); padding-top:12px;">
+            <div class="item-meta mono">Sotto-domanda: ${escapeHtml(q.followUp.testo)} (${triggered.length} risposte)</div>
+            <div class="pie-flex" style="margin-top:8px;">${fsvg}<div class="legend">${flegend}</div></div>
+          </div>`;
+        } else {
+          const frows = triggered.filter(a => a.followUpValore).map(a => `<div class="freetext-item"><span>${escapeHtml(a.followUpValore)}</span></div>`).join('');
+          fuBlockHtml = `<div style="margin-top:14px; border-top:1px dashed var(--line); padding-top:12px;">
+            <div class="item-meta mono">Sotto-domanda: ${escapeHtml(q.followUp.testo)} (${triggered.length} risposte)</div>
+            ${frows}
+          </div>`;
+        }
+      }
+    }
+
+    return `
+      <div class="pie-block">
+        <div class="item-meta mono">Domanda ${qi+1} · ${respondersCount}/${totalTeams} risposte${q.obbligatoria === false ? ' · opzionale' : ''}</div>
+        <div class="item-title" style="margin-bottom:10px;">${escapeHtml(q.testo)}</div>
+        ${mainBlock}
+        ${fuBlockHtml}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="no-print" style="display:flex; gap:10px;">
+      <button class="btn btn-outline" data-action="refresh-results">↻ Aggiorna</button>
+      <button class="btn btn-coral" data-action="print-results">🖨 Stampa / Esporta PDF</button>
+    </div>
+    ${blocks}
+  `;
+}
+
+function buildPieSVG(data){
+  const total = data.reduce((s,d) => s+d.value, 0);
+  const cx=70, cy=70, r=65;
+  let angle = 0;
+  let paths = '';
+  if(total === 0){
+    paths = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#E7EBF2"></circle>`;
+  } else {
+    data.forEach(d => {
+      if(d.value === 0) return;
+      const slice = d.value/total*360;
+      const start = angle, end = angle + slice;
+      paths += `<path d="${describeArc(cx,cy,r,start,end)}" fill="${d.color}"></path>`;
+      angle = end;
+    });
+  }
+  return `<svg width="140" height="140" viewBox="0 0 140 140" style="flex-shrink:0;">${paths}<circle cx="${cx}" cy="${cy}" r="28" fill="white"></circle></svg>`;
+}
+function polarToCartesian(cx,cy,r,angleDeg){
+  const a = (angleDeg-90) * Math.PI/180;
+  return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) };
+}
+function describeArc(cx,cy,r,startAngle,endAngle){
+  const start = polarToCartesian(cx,cy,r,endAngle);
+  const end = polarToCartesian(cx,cy,r,startAngle);
+  const largeArc = (endAngle-startAngle) <= 180 ? "0" : "1";
+  return `M ${cx} ${cy} L ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)} Z`;
+}
+
+/* ---- TAB: IMPOSTAZIONI (banner, password, Face ID/Touch ID) ---- */
+async function tabImpostazioni(){
+  const cfg = await getConfig();
+  const bioSupported = await biometricAvailable();
+  return `
+    <div class="card">
+      <h3 style="font-size:15px;">Immagine banner</h3>
+      <p class="muted" style="margin-top:-4px;">Mostrata in cima alla home e alla pagina di voto. Meglio un'immagine larga e bassa (es. 1200×300px) — viene ridimensionata automaticamente.</p>
+      ${cfg.bannerImage ? `<img src="${cfg.bannerImage}" style="width:100%;border-radius:10px;margin:10px 0;display:block;">` : ''}
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+          ${cfg.bannerImage ? 'Cambia immagine' : 'Carica immagine'}
+          <input type="file" accept="image/*" id="banner-file-input" style="display:none;">
+        </label>
+        ${cfg.bannerImage ? `<button class="btn btn-danger btn-sm" data-action="remove-banner">Rimuovi</button>` : ''}
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px;">Password admin</h3>
+      <div class="field"><label>Nuova password</label><input type="password" id="new-admin-pw" placeholder="Nuova password"></div>
+      <div class="field"><label>Conferma</label><input type="password" id="new-admin-pw2" placeholder="Ripeti password"></div>
+      <button class="btn btn-outline" data-action="change-password">Cambia password</button>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px;">Face ID / Touch ID</h3>
+      ${!bioSupported ? `
+        <p class="muted" style="margin-top:-4px;">Non disponibile su questo browser o dispositivo. La password resta comunque sempre utilizzabile.</p>
+      ` : cfg.biometricCredId ? `
+        <p class="muted" style="margin-top:-4px;">✓ Configurato su questo dispositivo.</p>
+        <button class="btn btn-danger btn-sm" data-action="remove-biometric">Disattiva su questo dispositivo</button>
+      ` : `
+        <p class="muted" style="margin-top:-4px;">Configuralo per accedere più rapidamente da questo stesso dispositivo, senza digitare la password.</p>
+        <button class="btn btn-bio btn-sm" data-action="register-biometric">Configura Face ID / Touch ID</button>
+      `}
+      <p class="muted" style="margin-top:10px; font-size:12px;">Nota: va configurato separatamente su ogni dispositivo/browser da cui vuoi accedere così; la password funziona sempre, ovunque.</p>
+    </div>
+  `;
+}
+
+function onBannerFileChange(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = async function(){
+      const maxW = 1000;
+      const scale = Math.min(1, maxW / img.width);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const cfg = await getConfig();
+      cfg.bannerImage = dataUrl;
+      const ok = await saveConfig(cfg);
+      if(!ok){ showToast('Errore nel salvataggio dell\'immagine (potrebbe essere troppo grande — prova un file più piccolo).', true); return; }
+      showToast('Banner aggiornato.');
+      screenAdminDash();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function removeBanner(){
+  const cfg = await getConfig();
+  cfg.bannerImage = null;
+  await saveConfig(cfg);
+  showToast('Banner rimosso.');
+  screenAdminDash();
+}
+
+async function changePassword(){
+  const pw = document.getElementById('new-admin-pw').value;
+  const pw2 = document.getElementById('new-admin-pw2').value;
+  if(!pw || pw.length < 4){ showToast('Usa almeno 4 caratteri.', true); return; }
+  if(pw !== pw2){ showToast('Le due password non coincidono.', true); return; }
+  const cfg = await getConfig();
+  cfg.adminPassword = pw;
+  const ok = await saveConfig(cfg);
+  if(!ok){ showToast('Errore nel salvataggio.', true); return; }
+  showToast('Password aggiornata.');
+  screenAdminDash();
+}
+
+/* ---------------------------------------------------------
+   ROUTER / RENDER DISPATCH
+--------------------------------------------------------- */
+function render(){
+  if(state.view === 'home') return screenHome();
+  if(state.view === 'p-login') return screenParticipantLogin();
+  if(state.view === 'p-vote') return screenParticipantVote();
+  if(state.view === 'a-login') return screenAdminLogin();
+  if(state.view === 'a-dash'){
+    if(!state.adminAuthed) return screenAdminLogin();
+    return screenAdminDash();
+  }
+}
+
+/* ---------------------------------------------------------
+   EVENT DELEGATION
+--------------------------------------------------------- */
+app.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  const action = btn.getAttribute('data-action');
+  switch(action){
+    case 'go-home': state.team=null; state.adminAuthed=false; state.editingQid=null; setView('home'); break;
+    case 'go-p-login': setView('p-login'); break;
+    case 'go-a-login': setView('a-login'); break;
+    case 'do-p-login': doParticipantLogin(); break;
+    case 'do-a-login': doAdminLogin(); break;
+    case 'login-biometric': loginWithBiometric(); break;
+    case 'submit-vote': submitVote(btn.getAttribute('data-qid'), btn.getAttribute('data-type')); break;
+    case 'set-tab': state.adminTab = btn.getAttribute('data-tab'); state.editingQid=null; screenAdminDash(); break;
+    case 'add-opt-field': addOptionFieldIn(btn.getAttribute('data-target')); break;
+    case 'add-question': addQuestion(); break;
+    case 'edit-q': editQuestion(btn.getAttribute('data-qid')); break;
+    case 'save-question': saveQuestionEdit(btn.getAttribute('data-qid')); break;
+    case 'cancel-edit-q': cancelEditQuestion(); break;
+    case 'toggle-q': toggleQuestion(btn.getAttribute('data-qid')); break;
+    case 'delete-q': deleteQuestion(btn.getAttribute('data-qid')); break;
+    case 'move-q': moveQuestion(btn.getAttribute('data-qid'), btn.getAttribute('data-dir')); break;
+    case 'add-team': addTeam(); break;
+    case 'delete-team': deleteTeam(btn.getAttribute('data-tid')); break;
+    case 'save-scadenza': saveScadenza(); break;
+    case 'close-voting': closeVoting(); break;
+    case 'reopen-voting': reopenVoting(); break;
+    case 'remove-banner': removeBanner(); break;
+    case 'change-password': changePassword(); break;
+    case 'register-biometric': registerBiometric(); break;
+    case 'remove-biometric': removeBiometric(); break;
+    case 'refresh-results': screenAdminDash(); break;
+    case 'print-results': window.print(); break;
+    case 'export-backup': exportBackup(); break;
+  }
+});
+app.addEventListener('change', (e) => {
+  if(e.target.id === 'new-q-type') onQTypeChange();
+  else if(e.target.id === 'new-q-followup-toggle') onFollowupToggle();
+  else if(e.target.id === 'fu-type') onFuTypeChange();
+  else if(e.target.id === 'import-file-input') importBackup(e.target.files[0]);
+  else if(e.target.id === 'banner-file-input') onBannerFileChange(e.target.files[0]);
+  else if(e.target.name && e.target.name.startsWith('q-')){
+    const qid = e.target.name.slice(2);
+    const wrap = document.getElementById('fu-wrap-' + qid);
+    if(wrap){
+      const trigger = wrap.getAttribute('data-trigger');
+      wrap.style.display = (e.target.value === trigger) ? 'block' : 'none';
+    }
+  }
+});
+
+/* ---------------------------------------------------------
+   UTIL
+--------------------------------------------------------- */
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+boot();
+})();
+</script>
+</body>
+</html>
