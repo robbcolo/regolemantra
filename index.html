@@ -203,17 +203,19 @@ footer.appfoot{padding:16px 20px 28px; text-align:center;}
      ====================================================================== -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
- const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCB7jkr12H2k3JLm9eYmi6GoXyQ32pD8Uc",
-  authDomain: "regole-mantra.firebaseapp.com",
-  projectId: "regole-mantra",
-  storageBucket: "regole-mantra.firebasestorage.app",
-  messagingSenderId: "951520447243",
-  appId: "1:951520447243:web:3029841595c7746d13f00e"
-};
-firebase.initializeApp(FIREBASE_CONFIG);
-const db = firebase.firestore();
+  const FIREBASE_CONFIG = {
+    apiKey: "INCOLLA_QUI_apiKey",
+    authDomain: "INCOLLA_QUI_authDomain",
+    projectId: "INCOLLA_QUI_projectId",
+    storageBucket: "INCOLLA_QUI_storageBucket",
+    messagingSenderId: "INCOLLA_QUI_messagingSenderId",
+    appId: "INCOLLA_QUI_appId"
+  };
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.firestore();
 </script>
 <!-- ====================================================================== -->
 
@@ -532,6 +534,15 @@ async function screenParticipantVote(){
     ${topbar('Squadra: ' + escapeHtml(state.team.nome), 'Vota le domande', null, true, 'go-home')}
     <main>
       ${closed ? `<div class="info-box">🔒 Votazione chiusa${closureInfo.manual ? " dall'admin" : ' — tutte le domande obbligatorie hanno raggiunto 9/9'}. Le risposte qui sotto sono definitive.</div>` : ''}
+      <div class="card">
+        <button type="button" class="link-btn" data-action="toggle-change-pin">🔒 Cambia il PIN della tua squadra</button>
+        <div id="change-pin-form" style="display:none; margin-top:12px;">
+          <p class="muted" style="margin-top:0;">Impostane uno che solo la tua squadra conosce, così nessun altro potrà entrare al posto tuo.</p>
+          <div class="field"><label>Nuovo PIN</label><input type="text" inputmode="numeric" class="pin-input" id="new-team-pin-self" placeholder="••••"></div>
+          <div class="field"><label>Conferma nuovo PIN</label><input type="text" inputmode="numeric" class="pin-input" id="new-team-pin-self2" placeholder="••••"></div>
+          <button class="btn btn-outline" style="width:auto;" data-action="change-own-pin">Salva nuovo PIN</button>
+        </div>
+      </div>
       ${active.length === 0 ? `
         <div class="card"><p class="muted">Nessuna domanda attiva al momento. Torna più tardi.</p></div>
       ` : `
@@ -547,6 +558,26 @@ async function screenParticipantVote(){
       `}
     </main>
   `;
+}
+
+function toggleChangePin(){
+  const form = document.getElementById('change-pin-form');
+  if(form) form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+}
+
+async function changeOwnPin(){
+  const pin = document.getElementById('new-team-pin-self').value.trim();
+  const pin2 = document.getElementById('new-team-pin-self2').value.trim();
+  if(!pin){ showToast('Inserisci un nuovo PIN.', true); return; }
+  if(pin !== pin2){ showToast('I due PIN non coincidono.', true); return; }
+  const teams = await getTeams();
+  const team = teams.find(t => t.id === state.team.id);
+  if(!team){ showToast('Squadra non trovata.', true); return; }
+  team.pin = pin;
+  const ok = await saveTeams(teams);
+  if(!ok){ showToast('Errore nel salvataggio del PIN.', true); return; }
+  showToast('PIN aggiornato: usalo dal prossimo accesso.');
+  screenParticipantVote();
 }
 
 function renderQuestionCard(q, i, myAnswer, closed){
@@ -668,7 +699,7 @@ async function screenAdminLogin(){
       ${state.err ? `<div class="error-box">${state.err}</div>` : ''}
       ${bioReady ? `
         <div class="card">
-          <button class="btn btn-bio" data-action="login-biometric">🔐 Entra con Face ID / Touch ID</button>
+          <button class="btn btn-bio" data-action="login-biometric">🔐 Sblocca con Touch ID / Face ID</button>
         </div>
         <div class="divider-or">oppure</div>
       ` : ''}
@@ -929,7 +960,8 @@ async function addQuestion(){
   const questions = await getQuestions();
   const maxOrd = questions.reduce((m,q) => Math.max(m, q.ordine), 0);
   questions.push({ id: uid('q'), ordine: maxOrd + 1, attiva: true, ...data });
-  await saveQuestions(questions);
+  const ok = await saveQuestions(questions);
+  if(!ok){ showToast('Errore: la domanda NON è stata salvata (controlla la connessione o le regole del database).', true); return; }
   showToast('Domanda aggiunta.');
   screenAdminDash();
 }
@@ -953,7 +985,8 @@ async function saveQuestionEdit(qid){
   const questions = await getQuestions();
   const q = questions.find(x => x.id === qid);
   if(q) Object.assign(q, data);
-  await saveQuestions(questions);
+  const ok = await saveQuestions(questions);
+  if(!ok){ showToast('Errore: le modifiche NON sono state salvate (controlla la connessione o le regole del database).', true); return; }
   state.editingQid = null;
   showToast('Modifiche salvate.');
   screenAdminDash();
@@ -963,7 +996,8 @@ async function toggleQuestion(qid){
   const questions = await getQuestions();
   const q = questions.find(x => x.id === qid);
   if(q) q.attiva = !q.attiva;
-  await saveQuestions(questions);
+  const ok = await saveQuestions(questions);
+  if(!ok){ showToast('Errore: la modifica non è stata salvata.', true); return; }
   screenAdminDash();
 }
 
@@ -971,7 +1005,8 @@ async function deleteQuestion(qid){
   if(!(await customConfirm('Eliminare questa domanda? Eventuali voti già espressi resteranno salvati ma non più visibili in lista.'))) return;
   let questions = await getQuestions();
   questions = questions.filter(x => x.id !== qid);
-  await saveQuestions(questions);
+  const ok = await saveQuestions(questions);
+  if(!ok){ showToast('Errore: la domanda NON è stata eliminata (controlla la connessione o le regole del database).', true); return; }
   showToast('Domanda eliminata.');
   screenAdminDash();
 }
@@ -984,7 +1019,8 @@ async function moveQuestion(qid, dir){
   const tmp = questions[idx].ordine;
   questions[idx].ordine = questions[swapIdx].ordine;
   questions[swapIdx].ordine = tmp;
-  await saveQuestions(questions);
+  const ok = await saveQuestions(questions);
+  if(!ok){ showToast('Errore: il riordino non è stato salvato.', true); return; }
   screenAdminDash();
 }
 
@@ -1010,8 +1046,29 @@ async function tabSquadre(){
       <div class="field"><label>PIN (dallo a chi vota)</label><input type="text" inputmode="numeric" id="new-team-pin" placeholder="Es. 4821"></div>
       <button class="btn btn-primary" data-action="add-team">Aggiungi squadra</button>
     </div>
+    ${teams.length > 0 ? `
+      <div class="card">
+        <h3 style="font-size:15px;">Reimposta tutti i PIN</h3>
+        <p class="muted" style="margin-top:-4px;">Utile a inizio stagione: imposta lo stesso PIN per tutte le squadre, poi ciascuna potrà cambiarlo una volta entrata (vedi pagina di voto).</p>
+        <div class="field"><label>Nuovo PIN per tutte le squadre</label><input type="text" inputmode="numeric" class="pin-input" id="bulk-pin-input" placeholder="Es. 0000"></div>
+        <button class="btn btn-outline" data-action="bulk-reset-pins">Applica a tutte le squadre</button>
+      </div>
+    ` : ''}
     <p class="muted">Squadre configurate: <strong>${teams.length}</strong></p>
   `;
+}
+
+async function bulkResetPins(){
+  const pin = document.getElementById('bulk-pin-input').value.trim();
+  if(!pin){ showToast('Inserisci un PIN.', true); return; }
+  const teams = await getTeams();
+  if(teams.length === 0){ showToast('Nessuna squadra configurata.', true); return; }
+  if(!(await customConfirm(`Impostare il PIN "${pin}" per tutte le ${teams.length} squadre? Sovrascrive i PIN attuali di ciascuna.`))) return;
+  teams.forEach(t => { t.pin = pin; });
+  const ok = await saveTeams(teams);
+  if(!ok){ showToast('Errore nel salvataggio.', true); return; }
+  showToast('PIN aggiornato per tutte le squadre.');
+  screenAdminDash();
 }
 
 async function addTeam(){
@@ -1020,7 +1077,8 @@ async function addTeam(){
   if(!name || !pin){ showToast('Inserisci nome squadra e PIN.', true); return; }
   const teams = await getTeams();
   teams.push({ id: uid('t'), nome: name, pin });
-  await saveTeams(teams);
+  const ok = await saveTeams(teams);
+  if(!ok){ showToast('Errore: la squadra NON è stata salvata (controlla la connessione o le regole del database).', true); return; }
   showToast('Squadra aggiunta.');
   screenAdminDash();
 }
@@ -1029,7 +1087,8 @@ async function deleteTeam(tid){
   if(!(await customConfirm('Eliminare questa squadra? I voti già espressi restano salvati ma la squadra non potrà più accedere.'))) return;
   let teams = await getTeams();
   teams = teams.filter(t => t.id !== tid);
-  await saveTeams(teams);
+  const ok = await saveTeams(teams);
+  if(!ok){ showToast('Errore: la squadra NON è stata eliminata (controlla la connessione o le regole del database).', true); return; }
   showToast('Squadra eliminata.');
   screenAdminDash();
 }
@@ -1097,7 +1156,8 @@ async function closeVoting(){
   if(!(await customConfirm('Chiudere la votazione ora? Nessuno potrà più rispondere o modificare le risposte, e i risultati diventeranno visibili.'))) return;
   const cfg = await getConfig();
   cfg.votazioneChiusa = true;
-  await saveConfig(cfg);
+  const ok = await saveConfig(cfg);
+  if(!ok){ showToast('Errore: la chiusura non è stata salvata.', true); return; }
   screenAdminDash();
 }
 
@@ -1105,7 +1165,8 @@ async function reopenVoting(){
   if(!(await customConfirm('Riaprire la votazione? I partecipanti potranno di nuovo rispondere o modificare le risposte, e i risultati torneranno nascosti (a meno che le domande obbligatorie non siano già tutte a 9/9).'))) return;
   const cfg = await getConfig();
   cfg.votazioneChiusa = false;
-  await saveConfig(cfg);
+  const ok = await saveConfig(cfg);
+  if(!ok){ showToast('Errore: la riapertura non è stata salvata.', true); return; }
   screenAdminDash();
 }
 
@@ -1113,7 +1174,8 @@ async function saveScadenza(){
   const val = document.getElementById('scadenza-input').value;
   const cfg = await getConfig();
   cfg.scadenza = val || null;
-  await saveConfig(cfg);
+  const ok = await saveConfig(cfg);
+  if(!ok){ showToast('Errore: la scadenza NON è stata salvata (controlla la connessione o le regole del database).', true); return; }
   showToast('Scadenza salvata.');
   screenAdminDash();
 }
@@ -1207,7 +1269,7 @@ async function tabRisultati(){
   return `
     <div class="no-print" style="display:flex; gap:10px;">
       <button class="btn btn-outline" data-action="refresh-results">↻ Aggiorna</button>
-      <button class="btn btn-coral" data-action="print-results">🖨 Stampa / Esporta PDF</button>
+      <button class="btn btn-coral" data-action="export-pdf" id="export-pdf-btn">⬇ Esporta PDF</button>
     </div>
     ${blocks}
   `;
@@ -1242,6 +1304,207 @@ function describeArc(cx,cy,r,startAngle,endAngle){
   return `M ${cx} ${cy} L ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)} Z`;
 }
 
+/* ---- ESPORTAZIONE PDF (grafici veri via Chart.js, impaginati con jsPDF) ---- */
+function hexToRgb(hex){
+  const h = hex.replace('#','');
+  return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)];
+}
+
+function renderPieChartImage(data){
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 500; canvas.height = 500;
+    canvas.style.position = 'fixed'; canvas.style.left = '-99999px'; canvas.style.top = '0';
+    document.body.appendChild(canvas);
+    const hasData = data.some(d => d.value > 0);
+    const chart = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => d.label),
+        datasets: [{
+          data: hasData ? data.map(d => d.value) : data.map(() => 1),
+          backgroundColor: hasData ? data.map(d => d.color) : data.map(() => '#E7EBF2'),
+          borderColor: '#FFFFFF',
+          borderWidth: 4,
+        }],
+      },
+      options: {
+        responsive: false,
+        animation: false,
+        cutout: '55%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      },
+    });
+    setTimeout(() => {
+      const img = canvas.toDataURL('image/png');
+      chart.destroy();
+      document.body.removeChild(canvas);
+      resolve(img);
+    }, 60);
+  });
+}
+
+let exportingPdf = false;
+async function exportResultsPDF(){
+  if(exportingPdf) return;
+  if(!window.jspdf || !window.Chart){ showToast('Librerie PDF non caricate: controlla la connessione e ricarica la pagina.', true); return; }
+
+  const closureInfo = await computeClosure();
+  const { teams, questions, allVotes } = closureInfo;
+  const active = questions.filter(q => q.attiva).sort((a,b) => a.ordine - b.ordine);
+  if(teams.length === 0 || active.length === 0){ showToast('Nessun dato da esportare.', true); return; }
+  if(!closureInfo.closed){ showToast('I risultati non sono ancora sbloccati.', true); return; }
+
+  exportingPdf = true;
+  const btn = document.getElementById('export-pdf-btn');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Generazione in corso…'; }
+  showToast('Generazione PDF in corso, un momento…');
+
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 44;
+    const NAVY = [11,37,69], INKC = [20,33,61], MUTEDC = [92,107,130], CHALKC = [247,247,242], CORAL = [255,107,74];
+
+    // ---- Copertina ----
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, pageW, pageH, 'F');
+    doc.setTextColor(...CHALKC);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(30);
+    doc.text('Tabellone Regole', pageW/2, pageH/2 - 50, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(15);
+    doc.text('Risultati della votazione', pageW/2, pageH/2 - 14, { align: 'center' });
+    doc.setDrawColor(...CORAL);
+    doc.setLineWidth(2);
+    doc.line(pageW/2 - 60, pageH/2 + 6, pageW/2 + 60, pageH/2 + 6);
+    doc.setFontSize(11);
+    doc.text(`${active.length} domande · ${teams.length} squadre · ${new Date().toLocaleDateString('it-IT', { day:'2-digit', month:'long', year:'numeric' })}`, pageW/2, pageH/2 + 34, { align: 'center' });
+
+    for(let qi = 0; qi < active.length; qi++){
+      const q = active[qi];
+      doc.addPage();
+      doc.setFillColor(...CHALKC);
+      doc.rect(0, 0, pageW, pageH, 'F');
+
+      doc.setTextColor(...MUTEDC);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text(`DOMANDA ${qi+1}${q.obbligatoria === false ? ' · OPZIONALE' : ''}`, margin, 50);
+
+      doc.setTextColor(...INKC);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      const titleLines = doc.splitTextToSize(q.testo, pageW - margin*2);
+      doc.text(titleLines, margin, 74);
+      let y = 74 + titleLines.length * 21 + 20;
+
+      const answers = allVotes.map(v => v[q.id]).filter(Boolean);
+
+      if(q.tipo === 'scelta'){
+        const counts = {};
+        q.opzioni.forEach(o => counts[o] = 0);
+        answers.forEach(a => { counts[a.valore] = (counts[a.valore]||0) + 1; });
+        const chartData = q.opzioni.map((o,i) => ({ label: o, value: counts[o]||0, color: PIE_COLORS[i % PIE_COLORS.length] }));
+        const img = await renderPieChartImage(chartData);
+        const chartSize = 170;
+        doc.addImage(img, 'PNG', margin, y, chartSize, chartSize);
+
+        let ly = y + 6;
+        const legendX = margin + chartSize + 26;
+        const legendW = pageW - margin - legendX;
+        q.opzioni.forEach((o,i) => {
+          doc.setFillColor(...hexToRgb(PIE_COLORS[i % PIE_COLORS.length]));
+          doc.rect(legendX, ly, 11, 11, 'F');
+          const pct = answers.length ? Math.round((counts[o]||0)/answers.length*100) : 0;
+          const lines = doc.splitTextToSize(o, legendW - 70);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(11);
+          doc.setTextColor(...INKC);
+          doc.text(lines, legendX + 17, ly + 9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...MUTEDC);
+          doc.text(`${counts[o]||0} · ${pct}%`, pageW - margin, ly + 9, { align: 'right' });
+          ly += Math.max(20, lines.length * 13 + 6);
+        });
+        y = Math.max(y + chartSize, ly) + 20;
+      } else {
+        const groups = {};
+        answers.forEach(a => { const k = a.valore.trim(); groups[k] = (groups[k]||0) + 1; });
+        const rows = Object.entries(groups).sort((a,b) => b[1]-a[1]);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        if(rows.length === 0){
+          doc.setTextColor(...MUTEDC);
+          doc.text('Nessuna risposta.', margin, y);
+          y += 20;
+        }
+        rows.forEach(([txt,c]) => {
+          const lines = doc.splitTextToSize(`•  ${txt}`, pageW - margin*2 - 50);
+          doc.setTextColor(...INKC);
+          doc.text(lines, margin, y);
+          doc.setTextColor(...MUTEDC);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`×${c}`, pageW - margin, y, { align: 'right' });
+          doc.setFont('helvetica', 'normal');
+          y += lines.length * 14 + 8;
+        });
+        y += 12;
+      }
+
+      if(q.followUp){
+        const triggered = answers.filter(a => a.valore === q.followUp.trigger);
+        if(triggered.length > 0){
+          doc.setDrawColor(220,224,232);
+          doc.line(margin, y, pageW - margin, y);
+          y += 20;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(11);
+          doc.setTextColor(...MUTEDC);
+          const subTitleLines = doc.splitTextToSize(`Sotto-domanda: ${q.followUp.testo} (${triggered.length} risposte)`, pageW - margin*2);
+          doc.text(subTitleLines, margin, y);
+          y += subTitleLines.length * 14 + 10;
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(...INKC);
+          if(q.followUp.tipo === 'scelta'){
+            const fc = {};
+            q.followUp.opzioni.forEach(o => fc[o] = 0);
+            triggered.forEach(a => { if(a.followUpValore) fc[a.followUpValore] = (fc[a.followUpValore]||0) + 1; });
+            q.followUp.opzioni.forEach(o => {
+              doc.text(`•  ${o}: ${fc[o]||0}`, margin, y);
+              y += 16;
+            });
+          } else {
+            triggered.filter(a => a.followUpValore).forEach(a => {
+              const lines = doc.splitTextToSize(`•  ${a.followUpValore}`, pageW - margin*2);
+              doc.text(lines, margin, y);
+              y += lines.length * 14 + 4;
+            });
+          }
+        }
+      }
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...MUTEDC);
+      doc.text(`${answers.length}/${teams.length} risposte`, margin, pageH - 30);
+      doc.text('Tabellone Regole', pageW - margin, pageH - 30, { align: 'right' });
+    }
+
+    doc.save('risultati-votazione-' + new Date().toISOString().slice(0,10) + '.pdf');
+    showToast('PDF generato e scaricato.');
+  }catch(e){
+    console.error('export pdf failed', e);
+    showToast('Errore nella generazione del PDF. Riprova.', true);
+  }finally{
+    exportingPdf = false;
+    if(btn){ btn.disabled = false; btn.textContent = '⬇ Esporta PDF'; }
+  }
+}
+
 /* ---- TAB: IMPOSTAZIONI (banner, password, Face ID/Touch ID) ---- */
 async function tabImpostazioni(){
   const cfg = await getConfig();
@@ -1266,17 +1529,17 @@ async function tabImpostazioni(){
       <button class="btn btn-outline" data-action="change-password">Cambia password</button>
     </div>
     <div class="card">
-      <h3 style="font-size:15px;">Face ID / Touch ID</h3>
+      <h3 style="font-size:15px;">Sblocca con Touch ID / Face ID</h3>
       ${!bioSupported ? `
         <p class="muted" style="margin-top:-4px;">Non disponibile su questo browser o dispositivo. La password resta comunque sempre utilizzabile.</p>
       ` : cfg.biometricCredId ? `
-        <p class="muted" style="margin-top:-4px;">✓ Configurato su questo dispositivo.</p>
+        <p class="muted" style="margin-top:-4px;">✓ Configurato su questo dispositivo: da ora, nella schermata di accesso admin, comparirà il pulsante "Sblocca con Touch ID / Face ID".</p>
         <button class="btn btn-danger btn-sm" data-action="remove-biometric">Disattiva su questo dispositivo</button>
       ` : `
-        <p class="muted" style="margin-top:-4px;">Configuralo per accedere più rapidamente da questo stesso dispositivo, senza digitare la password.</p>
-        <button class="btn btn-bio btn-sm" data-action="register-biometric">Configura Face ID / Touch ID</button>
+        <p class="muted" style="margin-top:-4px;">Configuralo per accedere più rapidamente da questo stesso dispositivo, senza digitare la password ogni volta.</p>
+        <button class="btn btn-bio btn-sm" data-action="register-biometric">Configura Touch ID / Face ID</button>
       `}
-      <p class="muted" style="margin-top:10px; font-size:12px;">Nota: va configurato separatamente su ogni dispositivo/browser da cui vuoi accedere così; la password funziona sempre, ovunque.</p>
+      <p class="muted" style="margin-top:10px; font-size:12px;">Nota: va configurato separatamente su ogni dispositivo/browser da cui vuoi accedere così (questo, in quanto sito vero e proprio, lo supporta in modo affidabile); la password funziona comunque sempre, ovunque.</p>
     </div>
   `;
 }
@@ -1376,8 +1639,11 @@ app.addEventListener('click', async (e) => {
     case 'register-biometric': registerBiometric(); break;
     case 'remove-biometric': removeBiometric(); break;
     case 'refresh-results': screenAdminDash(); break;
-    case 'print-results': window.print(); break;
+    case 'export-pdf': exportResultsPDF(); break;
     case 'export-backup': exportBackup(); break;
+    case 'toggle-change-pin': toggleChangePin(); break;
+    case 'change-own-pin': changeOwnPin(); break;
+    case 'bulk-reset-pins': bulkResetPins(); break;
   }
 });
 app.addEventListener('change', (e) => {
