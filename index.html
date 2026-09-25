@@ -532,6 +532,15 @@ async function screenParticipantVote(){
     ${topbar('Squadra: ' + escapeHtml(state.team.nome), 'Vota le domande', null, true, 'go-home')}
     <main>
       ${closed ? `<div class="info-box">🔒 Votazione chiusa${closureInfo.manual ? " dall'admin" : ' — tutte le domande obbligatorie hanno raggiunto 9/9'}. Le risposte qui sotto sono definitive.</div>` : ''}
+      <div class="card">
+        <button type="button" class="link-btn" data-action="toggle-change-pin">🔒 Cambia il PIN della tua squadra</button>
+        <div id="change-pin-form" style="display:none; margin-top:12px;">
+          <p class="muted" style="margin-top:0;">Impostane uno che solo la tua squadra conosce, così nessun altro potrà entrare al posto tuo.</p>
+          <div class="field"><label>Nuovo PIN</label><input type="text" inputmode="numeric" class="pin-input" id="new-team-pin-self" placeholder="••••"></div>
+          <div class="field"><label>Conferma nuovo PIN</label><input type="text" inputmode="numeric" class="pin-input" id="new-team-pin-self2" placeholder="••••"></div>
+          <button class="btn btn-outline" style="width:auto;" data-action="change-own-pin">Salva nuovo PIN</button>
+        </div>
+      </div>
       ${active.length === 0 ? `
         <div class="card"><p class="muted">Nessuna domanda attiva al momento. Torna più tardi.</p></div>
       ` : `
@@ -547,6 +556,26 @@ async function screenParticipantVote(){
       `}
     </main>
   `;
+}
+
+function toggleChangePin(){
+  const form = document.getElementById('change-pin-form');
+  if(form) form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+}
+
+async function changeOwnPin(){
+  const pin = document.getElementById('new-team-pin-self').value.trim();
+  const pin2 = document.getElementById('new-team-pin-self2').value.trim();
+  if(!pin){ showToast('Inserisci un nuovo PIN.', true); return; }
+  if(pin !== pin2){ showToast('I due PIN non coincidono.', true); return; }
+  const teams = await getTeams();
+  const team = teams.find(t => t.id === state.team.id);
+  if(!team){ showToast('Squadra non trovata.', true); return; }
+  team.pin = pin;
+  const ok = await saveTeams(teams);
+  if(!ok){ showToast('Errore nel salvataggio del PIN.', true); return; }
+  showToast('PIN aggiornato: usalo dal prossimo accesso.');
+  screenParticipantVote();
 }
 
 function renderQuestionCard(q, i, myAnswer, closed){
@@ -668,7 +697,7 @@ async function screenAdminLogin(){
       ${state.err ? `<div class="error-box">${state.err}</div>` : ''}
       ${bioReady ? `
         <div class="card">
-          <button class="btn btn-bio" data-action="login-biometric">🔐 Entra con Face ID / Touch ID</button>
+          <button class="btn btn-bio" data-action="login-biometric">🔐 Sblocca con Touch ID / Face ID</button>
         </div>
         <div class="divider-or">oppure</div>
       ` : ''}
@@ -1010,6 +1039,14 @@ async function tabSquadre(){
       <div class="field"><label>PIN (dallo a chi vota)</label><input type="text" inputmode="numeric" id="new-team-pin" placeholder="Es. 4821"></div>
       <button class="btn btn-primary" data-action="add-team">Aggiungi squadra</button>
     </div>
+    ${teams.length > 0 ? `
+      <div class="card">
+        <h3 style="font-size:15px;">Reimposta tutti i PIN</h3>
+        <p class="muted" style="margin-top:-4px;">Utile a inizio stagione: imposta lo stesso PIN per tutte le squadre, poi ciascuna potrà cambiarlo una volta entrata (vedi pagina di voto).</p>
+        <div class="field"><label>Nuovo PIN per tutte le squadre</label><input type="text" inputmode="numeric" class="pin-input" id="bulk-pin-input" placeholder="Es. 0000"></div>
+        <button class="btn btn-outline" data-action="bulk-reset-pins">Applica a tutte le squadre</button>
+      </div>
+    ` : ''}
     <p class="muted">Squadre configurate: <strong>${teams.length}</strong></p>
   `;
 }
@@ -1022,6 +1059,19 @@ async function addTeam(){
   teams.push({ id: uid('t'), nome: name, pin });
   await saveTeams(teams);
   showToast('Squadra aggiunta.');
+  screenAdminDash();
+}
+
+async function bulkResetPins(){
+  const pin = document.getElementById('bulk-pin-input').value.trim();
+  if(!pin){ showToast('Inserisci un PIN.', true); return; }
+  const teams = await getTeams();
+  if(teams.length === 0){ showToast('Nessuna squadra configurata.', true); return; }
+  if(!(await customConfirm(`Impostare il PIN "${pin}" per tutte le ${teams.length} squadre? Sovrascrive i PIN attuali di ciascuna.`))) return;
+  teams.forEach(t => { t.pin = pin; });
+  const ok = await saveTeams(teams);
+  if(!ok){ showToast('Errore nel salvataggio.', true); return; }
+  showToast('PIN aggiornato per tutte le squadre.');
   screenAdminDash();
 }
 
@@ -1378,6 +1428,9 @@ app.addEventListener('click', async (e) => {
     case 'refresh-results': screenAdminDash(); break;
     case 'print-results': window.print(); break;
     case 'export-backup': exportBackup(); break;
+    case 'toggle-change-pin': toggleChangePin(); break;
+    case 'change-own-pin': changeOwnPin(); break;
+    case 'bulk-reset-pins': bulkResetPins(); break;
   }
 });
 app.addEventListener('change', (e) => {
