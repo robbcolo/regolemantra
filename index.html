@@ -442,7 +442,7 @@ async function screenHome(){
   const banner = cfg.bannerImage ? `<img src="${cfg.bannerImage}" style="width:100%;display:block;max-height:220px;object-fit:cover;">` : '';
   app.innerHTML = `
     ${banner}
-    ${topbar('Fantacalcio · Nuova Stagione', 'Tabellone Regole', 'Vota le regole della prossima stagione')}
+    ${topbar('FantaMantra Patti 26/27', 'Tabellone Regole', 'Vota le regole della prossima stagione')}
     <main>
       <div class="role-grid">
         <button class="role-card" data-action="go-p-login">
@@ -460,7 +460,6 @@ async function screenHome(){
           </div>
         </button>
       </div>
-      <p class="muted" style="text-align:center;margin-top:6px;">Un solo link per tutti — ognuno entra dal proprio ruolo.</p>
     </main>
     <footer class="appfoot muted">⚽ Tabellone Regole</footer>
   `;
@@ -531,7 +530,7 @@ async function screenParticipantVote(){
     ${banner}
     ${topbar('Squadra: ' + escapeHtml(state.team.nome), 'Vota le domande', null, true, 'go-home')}
     <main>
-      ${closed ? `<div class="info-box">🔒 Votazione chiusa${closureInfo.manual ? " dall'admin" : ' — tutte le domande obbligatorie hanno raggiunto 9/9'}. Le risposte qui sotto sono definitive.</div>` : ''}
+      ${closed ? `<div class="info-box">🔒 Votazione chiusa${closureInfo.manual ? " dall'admin" : ` — tutte le domande obbligatorie hanno raggiunto ${closureInfo.teams.length}/${closureInfo.teams.length}`}. Le risposte qui sotto sono definitive.</div>` : ''}
       <div class="card">
         <button type="button" class="link-btn" data-action="toggle-change-pin">🔒 Cambia il PIN della tua squadra</button>
         <div id="change-pin-form" style="display:none; margin-top:12px;">
@@ -1114,7 +1113,7 @@ async function tabStato(){
   });
 
   const statusHtml = closureInfo.closed
-    ? `<div class="info-box">🔒 Votazione chiusa ${closureInfo.manual ? '(chiusa manualmente)' : '(tutte le domande obbligatorie hanno raggiunto 9/9)'}</div>
+    ? `<div class="info-box">🔒 Votazione chiusa ${closureInfo.manual ? '(chiusa manualmente)' : `(tutte le domande obbligatorie hanno raggiunto ${teams.length}/${teams.length})`}</div>
        ${closureInfo.manual ? `<button class="btn btn-outline btn-sm no-print" data-action="reopen-voting">Riapri votazione</button>` : ''}`
     : `<div class="card" style="padding:14px;">
         <p class="muted" style="margin:0 0 10px;">Votazione aperta — i partecipanti possono ancora rispondere o cambiare le risposte.</p>
@@ -1152,7 +1151,7 @@ async function closeVoting(){
 }
 
 async function reopenVoting(){
-  if(!(await customConfirm('Riaprire la votazione? I partecipanti potranno di nuovo rispondere o modificare le risposte, e i risultati torneranno nascosti (a meno che le domande obbligatorie non siano già tutte a 9/9).'))) return;
+  if(!(await customConfirm('Riaprire la votazione? I partecipanti potranno di nuovo rispondere o modificare le risposte, e i risultati torneranno nascosti (a meno che le domande obbligatorie non siano già tutte complete).'))) return;
   const cfg = await getConfig();
   cfg.votazioneChiusa = false;
   await saveConfig(cfg);
@@ -1188,7 +1187,7 @@ async function tabRisultati(){
   }
 
   if(!closureInfo.closed){
-    return `<div class="waiting-box">🔒 I risultati si sbloccano quando la votazione viene chiusa — manualmente dall'admin (tab "Stato Voto"), oppure automaticamente quando tutte le domande obbligatorie raggiungono 9/9.</div>`;
+    return `<div class="waiting-box">🔒 I risultati si sbloccano quando la votazione viene chiusa — manualmente dall'admin (tab "Stato Voto"), oppure automaticamente quando tutte le domande obbligatorie raggiungono ${totalTeams}/${totalTeams}.</div>`;
   }
 
   const blocks = active.map((q, qi) => {
